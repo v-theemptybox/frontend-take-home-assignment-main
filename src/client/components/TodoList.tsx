@@ -1,6 +1,6 @@
-import type { SVGProps } from 'react'
-
+import { useEffect, useState, type SVGProps } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
+import * as Tabs from '@radix-ui/react-tabs'
 
 import { api } from '@/utils/client/api'
 
@@ -64,31 +64,119 @@ import { api } from '@/utils/client/api'
  */
 
 export const TodoList = () => {
+  const [sortedTodoIds, setSortedTodoIds] = useState([])
+  const [filterStatus, setFilterStatus] = useState('all')
+
   const { data: todos = [] } = api.todo.getAll.useQuery({
     statuses: ['completed', 'pending'],
   })
 
-  return (
-    <ul className="grid grid-cols-1 gap-y-3">
-      {todos.map((todo) => (
-        <li key={todo.id}>
-          <div className="flex items-center rounded-12 border border-gray-200 px-4 py-3 shadow-sm">
-            <Checkbox.Root
-              id={String(todo.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
-            >
-              <Checkbox.Indicator>
-                <CheckIcon className="h-4 w-4 text-white" />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
+  //
+  useEffect(() => {
+    if (todos.length > 0 && sortedTodoIds.length === 0) {
+      setSortedTodoIds(todos.map((todo) => todo.id))
+    }
+  }, [todos])
 
-            <label className="block pl-3 font-medium" htmlFor={String(todo.id)}>
-              {todo.body}
-            </label>
-          </div>
-        </li>
-      ))}
-    </ul>
+  const sortedTodos = sortedTodoIds.map((id) =>
+    todos.find((todo) => todo.id === id)
+  )
+
+  const filteredTodos = sortedTodos.filter((todo) => {
+    if (filterStatus === 'all') {
+      return true
+    }
+    return todo?.status === filterStatus
+  })
+
+  // Change filter status view state when click to corresponding tab button
+  const handleTabChange = (value: string) => {
+    setFilterStatus(value)
+  }
+
+  const apiContext = api.useContext()
+
+  const { mutate: updateTodoStatus } = api.todoStatus.update.useMutation({
+    onSuccess: () => {
+      apiContext.todo.getAll.refetch()
+    },
+  })
+
+  const handleClickToUpdateStatus = (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'
+    updateTodoStatus({
+      todoId: id,
+      status: newStatus,
+    })
+  }
+
+  return (
+    <>
+      {/* Answer 6: Customize navbar using radix*/}
+      <Tabs.Root
+        defaultValue="all"
+        value={filterStatus}
+        onValueChange={handleTabChange}
+      >
+        <Tabs.List className="mb-5">
+          <Tabs.Trigger
+            className="mr-3 rounded-full bg-gray-800 px-5 py-3 text-center text-white"
+            value="all"
+          >
+            All
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            className="mr-3 rounded-full bg-gray-800 px-5 py-3 text-center text-white"
+            value="pending"
+          >
+            Pending
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            className="mr-3 rounded-full bg-gray-800 px-5 py-3 text-center text-white"
+            value="completed"
+          >
+            Completed
+          </Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value={filterStatus}>
+          <ul className="grid grid-cols-1 gap-y-3">
+            {filteredTodos.map((todo) => (
+              <li
+                key={todo.id}
+                onClick={() => {
+                  handleClickToUpdateStatus(todo.id, todo.status)
+                }}
+              >
+                <div
+                  className={`${
+                    todo.status === 'completed' ? 'bg-gray-100' : ''
+                  } flex items-center rounded-12 border border-gray-200 px-4 py-3 shadow-sm`}
+                >
+                  <Checkbox.Root
+                    id={String(todo.id)}
+                    checked={todo.status === 'completed'}
+                    className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
+                  >
+                    <Checkbox.Indicator>
+                      <CheckIcon className="h-4 w-4 text-white" />
+                    </Checkbox.Indicator>
+                  </Checkbox.Root>
+
+                  <label
+                    className={`${
+                      todo.status === 'completed' ? 'line-through' : ''
+                    } block pl-3 font-medium`}
+                    htmlFor={String(todo.id)}
+                  >
+                    {todo.body}
+                  </label>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Tabs.Content>
+      </Tabs.Root>
+    </>
   )
 }
 
