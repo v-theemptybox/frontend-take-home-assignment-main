@@ -1,6 +1,7 @@
-import { useEffect, useState, type SVGProps } from 'react'
+import { useState, type SVGProps } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import * as Tabs from '@radix-ui/react-tabs'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 
 import { api } from '@/utils/client/api'
 
@@ -65,6 +66,8 @@ import { api } from '@/utils/client/api'
 
 export const TodoList = () => {
   const [filterStatus, setFilterStatus] = useState('all')
+  // A5: Use formkit auto animate
+  const [parent, enableAnimations] = useAutoAnimate()
 
   const { data: todos = [] } = api.todo.getAll.useQuery({
     statuses: ['completed', 'pending'],
@@ -144,7 +147,8 @@ export const TodoList = () => {
           </Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value={filterStatus}>
-          <ul className="grid grid-cols-1 gap-y-3">
+          {/* Answer 5: Use formkit auto animate */}
+          <ul className="grid grid-cols-1 gap-y-3" ref={parent}>
             {filteredTodos.map((todo) => (
               <li
                 key={todo?.id}
