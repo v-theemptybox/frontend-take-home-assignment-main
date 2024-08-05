@@ -64,38 +64,28 @@ import { api } from '@/utils/client/api'
  */
 
 export const TodoList = () => {
-  const [sortedTodoIds, setSortedTodoIds] = useState([])
   const [filterStatus, setFilterStatus] = useState('all')
 
   const { data: todos = [] } = api.todo.getAll.useQuery({
     statuses: ['completed', 'pending'],
   })
 
-  //
-  useEffect(() => {
-    if (todos.length > 0 && sortedTodoIds.length === 0) {
-      setSortedTodoIds(todos.map((todo) => todo.id))
-    }
-  }, [todos])
-
-  const sortedTodos = sortedTodoIds.map((id) =>
-    todos.find((todo) => todo.id === id)
-  )
-
-  const filteredTodos = sortedTodos.filter((todo) => {
+  // A6: Filter sorted list by status
+  const filteredTodos = todos.filter((todo) => {
     if (filterStatus === 'all') {
       return true
     }
     return todo?.status === filterStatus
   })
 
-  // Change filter status view state when click to corresponding tab button
+  // A6: Change filter status view state when click to corresponding tab button
   const handleTabChange = (value: string) => {
     setFilterStatus(value)
   }
 
   const apiContext = api.useContext()
 
+  // A3: Call api and update status
   const { mutate: updateTodoStatus } = api.todoStatus.update.useMutation({
     onSuccess: () => {
       apiContext.todo.getAll.refetch()
@@ -108,6 +98,21 @@ export const TodoList = () => {
       todoId: id,
       status: newStatus,
     })
+  }
+
+  // A4: Call api and delete todo item
+  const { mutate: deleteTodo } = api.todo.delete.useMutation({
+    onSuccess: () => {
+      apiContext.todo.getAll.refetch()
+    },
+  })
+
+  const handleDeleteItem = (id: string) => {
+    if (confirm('Delete this todo?')) {
+      deleteTodo({
+        id: id,
+      })
+    }
   }
 
   return (
@@ -142,34 +147,45 @@ export const TodoList = () => {
           <ul className="grid grid-cols-1 gap-y-3">
             {filteredTodos.map((todo) => (
               <li
-                key={todo.id}
+                key={todo?.id}
                 onClick={() => {
-                  handleClickToUpdateStatus(todo.id, todo.status)
+                  handleClickToUpdateStatus(todo?.id, todo?.status)
                 }}
               >
                 <div
                   className={`${
-                    todo.status === 'completed' ? 'bg-gray-100' : ''
-                  } flex items-center rounded-12 border border-gray-200 px-4 py-3 shadow-sm`}
+                    todo?.status === 'completed' ? 'bg-gray-100' : ''
+                  } flex items-center justify-between rounded-12 border border-gray-200 px-4 py-3 shadow-sm`}
                 >
-                  <Checkbox.Root
-                    id={String(todo.id)}
-                    checked={todo.status === 'completed'}
-                    className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
-                  >
-                    <Checkbox.Indicator>
-                      <CheckIcon className="h-4 w-4 text-white" />
-                    </Checkbox.Indicator>
-                  </Checkbox.Root>
+                  <div className="flex items-center">
+                    <Checkbox.Root
+                      id={String(todo?.id)}
+                      checked={todo?.status === 'completed'}
+                      className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
+                    >
+                      <Checkbox.Indicator>
+                        <CheckIcon className="h-4 w-4 text-white" />
+                      </Checkbox.Indicator>
+                    </Checkbox.Root>
 
-                  <label
-                    className={`${
-                      todo.status === 'completed' ? 'line-through' : ''
-                    } block pl-3 font-medium`}
-                    htmlFor={String(todo.id)}
-                  >
-                    {todo.body}
-                  </label>
+                    <label
+                      className={`${
+                        todo?.status === 'completed' ? 'line-through' : ''
+                      } block pl-3 font-medium`}
+                      htmlFor={String(todo?.id)}
+                    >
+                      {todo?.body}
+                    </label>
+                  </div>
+                  {/* Answer 4: Delete todo item */}
+                  <XMarkIcon
+                    aria-label="Delete todo item"
+                    className="h-6 w-6 cursor-pointer justify-self-end focus:outline-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteItem(todo.id)
+                    }}
+                  />
                 </div>
               </li>
             ))}
